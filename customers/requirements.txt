@@ -2,3 +2,9 @@ fastapi
 uvicorn[standard]
 flake8
 behave
+motor
+pymongo[srv]
+dnspython
+httpx
+pytest
+requests
