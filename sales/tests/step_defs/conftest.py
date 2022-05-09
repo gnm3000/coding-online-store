@@ -2,6 +2,12 @@
 This module contains shared fixtures, steps, and hooks.
 """
 
+import pytest
+import asyncio
 
-def pytest_bdd_step_error(request, feature, scenario, step, step_func, step_func_args, exception):
-    print(f'Step failed: {step}')
+
+@pytest.fixture(scope='module')
+def event_loop():
+    loop = asyncio.new_event_loop()
+    yield loop
+    loop.close()
