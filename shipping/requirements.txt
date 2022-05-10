@@ -1,0 +1,12 @@
+fastapi
+uvicorn[standard]
+flake8
+motor
+pymongo[srv]
+dnspython
+httpx
+pytest
+requests
+pytest-bdd
+pytest-asyncio
+autopep8
