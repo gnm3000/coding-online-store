@@ -2,7 +2,7 @@
 This module contains shared fixtures, steps, and hooks.
 """
 
-import pytest
+"""import pytest
 import asyncio
 
 
@@ -10,4 +10,4 @@ import asyncio
 def event_loop():
     loop = asyncio.new_event_loop()
     yield loop
-    loop.close()
+    loop.close()"""
