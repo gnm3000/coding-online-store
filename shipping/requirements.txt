@@ -10,3 +10,4 @@ requests
 pytest-bdd
 pytest-asyncio
 autopep8
+pika

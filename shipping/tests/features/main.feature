@@ -8,9 +8,15 @@ Feature: Shipping manage orders and returns
   # The lines immediately after the feature title are just comments
 
   Scenario: Create a new order
-    Given a new order payed arrived
-    When my order was received
-    Then I Should get the order in ordered status, saved and get a confirmation message ready to be processed
+    Given a new checkout payed arrived
+    When a new order is created
+    Then I Should get the order in ordered status
+  
+  Scenario: Process the created order 
+    Given an order created in ordered status
+    When the order is completely processed 
+    Then I Should get the order in delivered status
+  
   
 
 

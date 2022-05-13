@@ -1,3 +1,4 @@
+from datetime import datetime
 from pprint import pprint
 from bson import ObjectId
 from pydantic import BaseModel, Field
@@ -37,30 +38,30 @@ class ProductModel(BaseModel):
     price: float = Field(...)
     quantity: int = Field(...)
 
+
+class StatusHistory(BaseModel):
+    status: str = Field(...)
+    created_at: datetime = Field(...)
+    
+
 class OrderModel(BaseModel):
     id: PyObjectId = Field(default_factory=PyObjectId, alias="_id")
     cart_id: str = Field(...)
     customer_id: str = Field(...)
-    delivery_date: str = Field(...)
+    #delivery_date: str = Field(...)
     status: str = Field(...)
     products: List[ProductModel] = None
     #products: List[ProductModel] = Field(...)
+    status_history: List[StatusHistory] = None
     
-    
-
-
-
-
 @app.get("/")
 async def hello():
     return {"hello"}
-
 
 @app.get("/shipping/orders", response_model=List[OrderModel])
 async def list_orders():
     """ list   """
     return await db["orders"].find().to_list(None)
-
 
 @app.get("/shipping/return-products")
 async def return_products():
@@ -71,27 +72,3 @@ async def return_products():
     # return-products need to process again
     pass
 
-async def insert_one(order_dict):
-    order = await db["orders"].insert_one(order_dict)
-    return order
-from typing import Any, Dict, AnyStr, List, Union
-JSONObject = Dict[AnyStr, Any]
-JSONArray = List[Any]
-JSONStructure = Union[JSONArray, JSONObject]
-@app.post("/shipping/orders")
-async def create_order(customer_id: str, cart_id: str, products: Union[JSONArray, JSONObject], delivery_date: str):
-    """ Scenario: Create a new order """
-    # save to DB, assign a processing time between 1 to 5 days, and set
-    # order_status=Orderded
-    #
-    #products_example = [{"_id":"62796a564f406dec0c2dca6d","name":"t-shirt","price":21,"quantity":1}]
-    order = await db["orders"].insert_one({"customer_id": customer_id, 
-    "cart_id": cart_id,"delivery_date": delivery_date,
-    "status": "ordered","products":products})
-
-    # return Order saved with order_id
-
-    # Order status: Ordered, Sent to warehouse, Packaged, Carrier picked up,
-    # Out for delivery, Delivered
-    pprint(order)
-    return {"message": "order inserted", "id": str(order.inserted_id)}
