@@ -34,7 +34,7 @@ class MessageSender:
 
 class SalesBackgroundTask:
 
-    def processCart(self,cart):
+    def processCart(self,cart_id:str):
         # send to rabbit cart_queue
         credentials = pika.PlainCredentials('guest', 'guest')
         parameters = pika.ConnectionParameters('192.168.49.2',
@@ -46,7 +46,7 @@ class SalesBackgroundTask:
 
         channel.queue_declare(queue='sales_cart_queue', durable=True)
 
-        message = {"cart_id":str(cart['_id'])}
+        message = {"cart_id":cart_id}
         channel.basic_publish(
             exchange='',
             routing_key='sales_cart_queue',
@@ -62,19 +62,15 @@ class SalesBackgroundTask:
   
         
 import time
-import motor.motor_asyncio
 from bson.objectid import ObjectId
 MONGODB_URL = "mongodb://adminuser:password123@mongo-nodeport-svc.default.svc.cluster.local/?retryWrites=true&w=majority"  # prod
 MONGODB_URL = "mongodb://adminuser:password123@192.168.49.2:32258/?retryWrites=true&w=majority"  # local
 from background_tasks import SalesBackgroundTask
-client = motor.motor_asyncio.AsyncIOMotorClient(MONGODB_URL)
-db = client.sales
-import asyncio
+import pymongo
+client = pymongo.MongoClient(MONGODB_URL)
+db = client["sales"]
 import pprint
-async def set_order_as(condition,status):
-    print("SET ORDER CONDITION=",condition,"AS STATUS=",status)
-    r=await db["carts"].update_one(condition,{'$set':{"status":status}})
-    print("modified_count",r.modified_count)
+
 class MsgProcessor:
 
     def process(self,msg):
@@ -82,10 +78,7 @@ class MsgProcessor:
         cart_id = msg["cart_id"]
         # request customer API
         # connect to mongo and read cart info
-        req = requests.get("http://localhost:5678/customers")
-        last_customer=(req.json()[-1])
-        wallet_usd = last_customer["wallet_usd"]
-        print("PREVIA WALLET",wallet_usd)
+        
         req = requests.get("http://localhost:8000/sales/products")
         catalog_products=req.json()
         print("catalog_products",catalog_products)
@@ -93,8 +86,15 @@ class MsgProcessor:
 
         
         req = requests.get("http://localhost:8000/sales/checkout-status",params={"cart_id":cart_id})
+        
         cart=req.json()
         products = cart["cart"]["products"]
+        customer_id = cart["cart"]["customer_id"]
+        req = requests.get("http://localhost:5678/customers/%s" % customer_id)
+        customer=req.json()
+        wallet_usd = customer["wallet_usd"]
+        print("WALLET USD",wallet_usd)
+
         purchase=0
         order_failed=False
         # --- if  purchase > stock => NoStockError
@@ -102,13 +102,11 @@ class MsgProcessor:
             product_info = requests.get("http://localhost:8000/sales/product",{"id":product["product_id"]}).json()
             stock=product_info["quantity"]
             if(product["quantity"] > stock):
-                condition = {"customer_id": last_customer['_id'], "status": "pending"}
+                condition = {"customer_id": customer['_id'], "status": "pending"}
                 order_failed=True
                 print("Error no stock")
-                loop = asyncio.get_event_loop()
-                coroutine = set_order_as({"_id":ObjectId(cart_id)},"failed_by_stock")
-                loop.run_until_complete(coroutine)
-                loop.close()
+                db["carts"].update_one({"_id":ObjectId(cart_id)},{'$set':{"status":"failed_by_stock"}})
+
                 break
 
             purchase = purchase + product["price"]*product["quantity"]
@@ -119,26 +117,18 @@ class MsgProcessor:
         # process rabbit cart_queue
         # --- if  purchase > wallet => NoMoneyError
         if(purchase>wallet_usd):
-            condition = {"customer_id": last_customer['_id'], "status": "pending"}
-            loop = asyncio.get_event_loop()
-            coroutine = set_order_as({"_id":ObjectId(cart_id)},"failed_by_insufficient_funds")
-            loop.run_until_complete(coroutine)
-            loop.close()
+            db["carts"].update_one({"_id":ObjectId(cart_id)},{'$set':{"status":"failed_by_insufficient_funds"}})
             order_failed=True
             MessageSender.send("failed_orders",{"cart_id":cart_id})
             return
         # user_wallet = user_wallet - purchase
-        wallet_new_value = last_customer["wallet_usd"]- purchase
+        #wallet_new_value = last_customer["wallet_usd"]- purchase
         # actualizar la wallet del cliente!!
-        req = requests.post("http://localhost:5678/customer/update-wallet",params={"wallet_usd":wallet_new_value,"customer_id":last_customer['_id']})
+        req = requests.post("http://localhost:5678/customers/update-wallet",params={"cart_id":cart_id,
+            "purchase_usd":purchase,
+        "customer_id":customer['_id']})
         _=req.json()
-        condition = {"customer_id": last_customer['_id'], "status": "pending"}
-        
-        
-        loop = asyncio.get_event_loop()
-        coroutine = set_order_as({"_id":ObjectId(cart_id)},"success")
-        loop.run_until_complete(coroutine)
-        loop.close()
+        db["carts"].update_one({"_id":ObjectId(cart_id)},{'$set':{"status":"success"}})
         MessageSender.send("success_orders",{"cart_id":cart_id})
         # if sucess=> create order and send to shipping microservice (using rabbitMQ)
         # if error => create fail order and send to customers microservice (using rabbitMQ)
