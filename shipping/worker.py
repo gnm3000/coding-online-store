@@ -1,7 +1,14 @@
 
 #!/usr/bin/env python
-MONGODB_URL = "mongodb://adminuser:password123@mongo-nodeport-svc.default.svc.cluster.local/?retryWrites=true&w=majority"  # prod
-MONGODB_URL = "mongodb://adminuser:password123@192.168.49.2:32258/?retryWrites=true&w=majority"  # local
+
+
+
+from dotenv import load_dotenv
+
+
+load_dotenv()
+MONGODB_URL = os.getenv('MONGODB_URL')
+
 from datetime import datetime
 from gc import collect
 
@@ -16,11 +23,11 @@ import pika, sys, os,time,json,random
 
 def main():
 
-    credentials = pika.PlainCredentials('guest', 'guest')
-    parameters = pika.ConnectionParameters('192.168.49.2',
-                                        30064,
-                                        '/',
-                                        credentials)
+    credentials = pika.PlainCredentials(os.getenv('RABBITMQ_USER'), os.getenv('RABBITMQ_PASS'))
+    parameters = pika.ConnectionParameters(os.getenv('RABBITMQ_SERVER'),
+                                       os.getenv('RABBITMQ_PORT'),
+                                       '/',
+                                       credentials)
     connection = pika.BlockingConnection(parameters)
 
     channel = connection.channel()
