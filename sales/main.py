@@ -11,7 +11,7 @@ from typing import Optional
 import os
 import motor.motor_asyncio
 from bson.objectid import ObjectId
-app = FastAPI(root_path="/", docs_url='/api/docs')
+app = FastAPI(root_path="/", docs_url='/sales/api/docs')
 
 
 load_dotenv()

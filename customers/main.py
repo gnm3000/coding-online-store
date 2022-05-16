@@ -14,7 +14,7 @@ client = motor.motor_asyncio.AsyncIOMotorClient(MONGODB_URL)
 db = client.customers
 
 
-app = FastAPI(root_path="/", docs_url='/api/docs')
+app = FastAPI(root_path="/", docs_url='/customers/api/docs')
 
 
 @app.get("/")
