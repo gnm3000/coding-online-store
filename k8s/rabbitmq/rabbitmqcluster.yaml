@@ -20,3 +20,12 @@ spec:
                   default_user_tags.administrator = true
   service:
     type: NodePort
+  override:
+    service:
+      spec:
+        ports:
+        - name: tcp-amqp
+          protocol: TCP
+          port: 5672
+          targetPort: 5672
+          nodePort: 30064
