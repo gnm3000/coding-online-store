@@ -1,3 +1,4 @@
+import asyncio
 from fastapi import FastAPI
 from typing import Optional
 import os
@@ -12,6 +13,10 @@ MONGODB_URL="mongodb://adminuser:password123@mongo-nodeport-svc.default.svc.clus
 MONGODB_URL="mongodb://adminuser:password123@192.168.49.2:32258/?retryWrites=true&w=majority" # local
 
 client = motor.motor_asyncio.AsyncIOMotorClient(MONGODB_URL)
+if("drop" in os.environ):
+    client.drop_database("customers")
+    print("drop customers!")
+
 db = client.customers
 from pydantic import BaseModel, Field
 from bson import ObjectId
@@ -54,11 +59,11 @@ async def hello():
     return {"hello"}
 
 @app.get("/customers",response_model=List[CustomerModel])
-async def list_students():
+async def list_customers():
     return await db["customers"].find({},{}).to_list(None)
 
 @app.get("/customers/{customer_id}",response_model=CustomerModel)
-async def list_students(customer_id):
+async def get_customer(customer_id):
     return await db["customers"].find_one({'_id':ObjectId(customer_id)},{})
 
 from MongoDBConnector import MongoDBConnector, DBConnector
@@ -70,14 +75,15 @@ class Customer:
         r=await self.db_conn.insert_one("customers",{"full_name": data["full_name"],"wallet_usd": data["wallet_usd"]})
         return r
     async def find_one(self,condition:dict):
-        r=await self.db_conn.get_one("customers",condition)
+        r= await self.db_conn.get_one("customers",condition)
         return r
     async def update_one(self,condition:dict,data):
         r=await self.db_conn.update_one("customers",condition,data)
         return r
     
     async def process_wallet(self,customer_id:str,purchase_usd:float,cart_id:str):
-        customer_result = await self.find_one({'_id': ObjectId(customer_id)})
+        r =  (self.find_one({'_id': ObjectId(customer_id)}))
+        customer_result= await r
         wallet_usd = customer_result["wallet_usd"]
         wallet_new_value = wallet_usd - purchase_usd
         r= await self.update_one({'_id': ObjectId(customer_id)},data={'$set':{"wallet_usd":wallet_new_value},
@@ -89,10 +95,10 @@ class Customer:
 
 
 @app.post("/customers")
-async def new_customer(full_name: str, wallet_usd: int):
+async def new_customer(full_name: str, wallet_usd: float):
     customer = Customer(db_conn=MongoDBConnector(db_conn=db))
-    r= customer.insert_one(data={"full_name": full_name,"wallet_usd": wallet_usd})
-    return {"message": "customer inserted","id":str(r.inserted_id) }
+    r= await customer.insert_one(data={"full_name": full_name,"wallet_usd": wallet_usd})
+    return {"message": "customer inserted","customer_id":str(r) }
 
 
 

@@ -27,7 +27,7 @@ class FakeMongoDBConnector(DBConnector):
         return inserted_id
         
 
-    async def get_one(self,collection,_id:str):
+    async def get_one(self,collection,condition:dict):
         print("get_one",id)
         return {"wallet_usd":100}
 
@@ -40,11 +40,11 @@ class MongoDBConnector(DBConnector):
     def __init__(self,db_conn):
         self.db_conn = db_conn
     async def insert_one(self,collection,data):
-        r= self.db_conn[collection].insert_one(data)
+        r= await self.db_conn[collection].insert_one(data)
         return r.inserted_id
     
-    async def get_one(self,collection,_id:str):
-        return self.db_conn[collection].find_one({'_id': ObjectId(_id)})
+    async def get_one(self,collection,condition:dict):
+        return await self.db_conn[collection].find_one(condition)
 
     async def update_one(self,collection,condition,data):
-        return self.db_conn[collection].update_one(condition,data)
+        return await self.db_conn[collection].update_one(condition,data)
