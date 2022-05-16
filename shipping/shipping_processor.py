@@ -4,7 +4,7 @@ from datetime import datetime
 from MongoDBConnector import MongoDBConnector,DBConnector
 
 from abc import ABC, abstractmethod
-
+from datetime import timedelta
 import time
 import random
 from bson.objectid import ObjectId
@@ -54,7 +54,7 @@ class FakeCart(AbstractCart):
     def requestCart(self):
         #req = requests.get("http://localhost:8000/sales/checkout-status",params={"cart_id":self.cart_id})
         #return req.json()["cart"]
-        return {"products":{"id":"xxx","name":"T-Shirt","price":200,"quantity":1},"_id":"xxxx","customer_id":"yyy"}
+        return {"products":[{"id":"xxx","name":"T-Shirt","price":200,"quantity":1,"delivery_date":2}],"_id":"xxxx","customer_id":"yyy"}
 class Cart(AbstractCart):
     def __init__(self,cart_id:str):
         self.cart_id = cart_id
@@ -69,13 +69,25 @@ class ShippingProcessor:
         self.channel = channel
         self.notifier = notifier
         self.db = db
+    def calculate_dates(self,start:str,end:str) -> datetime:
+        start_datetime = datetime.fromisoformat(start)
+        end_datetime = datetime.fromisoformat(end)
+        minutes_diff=int((end_datetime-start_datetime).total_seconds()/60)
+        print("minutes_diff",minutes_diff)
+        minutes= random.randint(60,(int(minutes_diff*0.3)))
+        # in each stage we can take since 1 hour to the 30% the time of delivery date 
+        return (start_datetime+timedelta(minutes=minutes))
     
     def process_sucess_checkout(self,data:dict,cart: AbstractCart):
         print("Shipping processor process_sucess_checkout wait 10ms")
         cart = cart.requestCart()
-        status={"status": "ordered","created_at":str(datetime.utcnow())}
+        
+        max_delivery_date_days=max([p["delivery_date"] for p in cart["products"]])
+        today= datetime.utcnow()    
+        delivery_date = today+timedelta(days=max_delivery_date_days)
+        status={"status": "ordered","created_at":datetime.utcnow().isoformat()}
         order = {"customer_id":cart["customer_id"], "products": cart["products"], "cart_id":cart['_id'],"status":"ordered",
-                    "status_history":[status]}
+                    "status_history":[status],"delivery_date":delivery_date.isoformat()}
         # 1. create order
         order_inserted_id=self.db.insert_one("orders",order)
         #2. notificar a customer queue="order_notifications" {order_id: xxx, change_from:checkout, to: ordered, status: ordered, date: 22:11:03}
@@ -91,8 +103,11 @@ class ShippingProcessor:
         print("Shipping processor process_ordered_orders wait 10ms")
         
         order=self.db.get_one(collection="orders",_id=data["order_id"])
+        max_date_str=order["delivery_date"]
+        last_date_str=order["status_history"][-1]["created_at"]
+        new_date = self.calculate_dates(last_date_str,max_date_str)
         
-        status={"status": "sent_to_warehouse","created_at":str(datetime.utcnow())}
+        status={"status": "sent_to_warehouse","created_at":new_date.isoformat()}
         self.db.update_one(collection="orders",condition={"_id":ObjectId(data["order_id"])},
                                     data={'$set':{'status':status["status"]},'$push': {'status_history': status}})
         #db["orders"].update_one({"_id":ObjectId(data["order_id"])},{'$set':{'status':status["status"]},'$push': {'status_history': status}})
@@ -103,8 +118,11 @@ class ShippingProcessor:
         print("Shipping processor  process_warehouse_orders wait 10ms")
         
         order=self.db.get_one(collection="orders",_id=data["order_id"])
+        max_date_str=order["delivery_date"]
+        last_date_str=order["status_history"][-1]["created_at"]
+        new_date = self.calculate_dates(last_date_str,max_date_str)
         #order=db["orders"].find_one({'_id': ObjectId(data["order_id"])})
-        status={"status": "packaged","created_at":str(datetime.utcnow())}
+        status={"status": "packaged","created_at":new_date.isoformat()}
         #db["orders"].update_one({"_id":ObjectId(data["order_id"])},{'$set':{'status':status["status"]},'$push': {'status_history': status}})
         self.db.update_one(collection="orders",condition={"_id":ObjectId(data["order_id"])},
                                     data={'$set':{'status':status["status"]},'$push': {'status_history': status}})
@@ -116,8 +134,10 @@ class ShippingProcessor:
         #order=db["orders"].find_one({'_id': ObjectId(data["order_id"])})
 
         order=self.db.get_one(collection="orders",_id=data["order_id"])
-
-        status={"status": "carrier_picked_up","created_at":str(datetime.utcnow())}
+        max_date_str=order["delivery_date"]
+        last_date_str=order["status_history"][-1]["created_at"]
+        new_date = self.calculate_dates(last_date_str,max_date_str)
+        status={"status": "carrier_picked_up","created_at":new_date.isoformat()}
         #db["orders"].update_one({"_id":ObjectId(data["order_id"])},{'$set':{'status':status["status"]},'$push': {'status_history': status}})
         self.db.update_one(collection="orders",condition={"_id":ObjectId(data["order_id"])},
                                     data={'$set':{'status':status["status"]},'$push': {'status_history': status}})
@@ -129,7 +149,10 @@ class ShippingProcessor:
         #order=db["orders"].find_one({'_id': ObjectId(data["order_id"])})
 
         order=self.db.get_one(collection="orders",_id=data["order_id"])
-        status={"status": "out_for_delivery","created_at":str(datetime.utcnow())}
+        max_date_str=order["delivery_date"]
+        last_date_str=order["status_history"][-1]["created_at"]
+        new_date = self.calculate_dates(last_date_str,max_date_str)
+        status={"status": "out_for_delivery","created_at":str(new_date.isoformat())}
         
         self.db.update_one(collection="orders",condition={"_id":ObjectId(data["order_id"])},
                                     data={'$set':{'status':status["status"]},'$push': {'status_history': status}})
@@ -143,8 +166,8 @@ class ShippingProcessor:
         #order=db["orders"].find_one({'_id': ObjectId(data["order_id"])})
 
         order=self.db.get_one(collection="orders",_id=data["order_id"])
-
-        status={"status": "delivered","created_at":str(datetime.utcnow())}
+        max_date_str=order["delivery_date"]
+        status={"status": "delivered","created_at":max_date_str}
         self.db.update_one(collection="orders",condition={"_id":ObjectId(data["order_id"])},
                                     data={'$set':{'status':status["status"]},'$push': {'status_history': status}})
         time.sleep(random.randint(10,50)/1000)
