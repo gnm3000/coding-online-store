@@ -3,7 +3,7 @@ name: Shipping BDD Tests
 on:
   push:
     branches:
-      - github-actions
+      - main
     paths:
     - "shipping/**"
     - ".github/workflows/shipping.yaml"

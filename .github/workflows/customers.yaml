@@ -3,7 +3,7 @@ name: Customers BDD Tests
 on:
   push:
     branches:
-      - github-actions
+      - main
     paths:
     - "customers/**"
     - ".github/workflows/customers.yaml"
