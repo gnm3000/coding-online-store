@@ -37,9 +37,10 @@ class FailedOrdersProcessor:
         pass
 
 
-credentials = pika.PlainCredentials('guest', 'guest')
-parameters = pika.ConnectionParameters('192.168.49.2',
-                                       30064,
+
+credentials = pika.PlainCredentials(os.getenv('RABBITMQ_USER'), os.getenv('RABBITMQ_PASS'))
+parameters = pika.ConnectionParameters(os.getenv('RABBITMQ_SERVER'),
+                                       os.getenv('RABBITMQ_PORT'),
                                        '/',
                                        credentials)
 connection = pika.BlockingConnection(parameters)
