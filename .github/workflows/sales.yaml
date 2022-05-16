@@ -1,0 +1,35 @@
+name: Sales BDD Tests
+
+on:
+  push:
+    branches:
+      - github-actions
+    paths:
+    - "sales/**"
+    - ".github/workflows/sales.yaml"
+    
+
+jobs:
+  test:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest]
+        python-version: ['3.7']
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v2
+      with:
+        python-version: ${{ matrix.python-version }}
+    - name: Install dependencies
+      run: |
+        cd sales
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        
+    - name: Test with pytest
+      run: |
+        cd sales
+        python -m pytest --disable-pytest-warnings
