@@ -59,9 +59,10 @@ async def hello():
     return {"hello"}
 
 @app.get("/shipping/orders", response_model=List[OrderModel])
-async def list_orders():
-    """ list   """
-    return await db["orders"].find().to_list(None)
+async def list_orders(cart_id=None):
+    """ list shipping orders   """
+    if(cart_id==None): return await db["orders"].find().to_list(None)
+    return await db["orders"].find({"cart_id":cart_id}).to_list(None)
 
 @app.get("/shipping/return-products")
 async def return_products():

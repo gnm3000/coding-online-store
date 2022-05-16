@@ -51,7 +51,10 @@ if __name__ == "__main__":
     req = requests.get("http://localhost:5678/customers")
     customers = req.json()
     WORKERS = 10
-
+    if(True):
+        for customer in customers:
+            customer_scenario(customer)
+        exit()
     future_list = []
     with ThreadPoolExecutor(WORKERS) as executor:
         for customer in customers:

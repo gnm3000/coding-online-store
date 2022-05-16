@@ -1,4 +1,11 @@
-MONGODB_URL = "mongodb://adminuser:password123@192.168.49.2:32258/?retryWrites=true&w=majority"  # local
+
+
+from dotenv import load_dotenv
+import os
+
+load_dotenv()
+MONGODB_URL = os.getenv('MONGODB_URL')
+
 import pymongo
 client = pymongo.MongoClient(MONGODB_URL)
 client.drop_database("customers")

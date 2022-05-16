@@ -1,4 +1,6 @@
 from abc import ABC, abstractmethod
+
+from dotenv import load_dotenv
 from background_tasks import SalesBackgroundTask
 from unittest.mock import Mock
 from bson import ObjectId
@@ -10,12 +12,10 @@ import os
 import motor.motor_asyncio
 from bson.objectid import ObjectId
 app = FastAPI(root_path="/", docs_url='/api/docs')
-# openapi_url='/api/openapi.json',docs_url='/api/docs',              redoc_url='/api/redoc'
-# host="mongo-nodeport-svc"http://10.111.206.75:32000
-# port="27017" #adminuser -p password123
-minikubeip = "192.168.49.2"
-MONGODB_URL = "mongodb://adminuser:password123@mongo-nodeport-svc.default.svc.cluster.local/?retryWrites=true&w=majority"  # prod
-MONGODB_URL = "mongodb://adminuser:password123@192.168.49.2:32258/?retryWrites=true&w=majority"  # local
+
+
+load_dotenv()
+MONGODB_URL = os.getenv('MONGODB_URL')
 client = motor.motor_asyncio.AsyncIOMotorClient(MONGODB_URL)
 db = client.sales
 
