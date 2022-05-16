@@ -98,9 +98,11 @@ class MsgProcessor:
         purchase=0
         order_failed=False
         # --- if  purchase > stock => NoStockError
+        
         for product in products:
             product_info = requests.get("http://localhost:8000/sales/product",{"id":product["product_id"]}).json()
             stock=product_info["quantity"]
+            
             if(product["quantity"] > stock):
                 condition = {"customer_id": customer['_id'], "status": "pending"}
                 order_failed=True
@@ -120,6 +122,7 @@ class MsgProcessor:
             db["carts"].update_one({"_id":ObjectId(cart_id)},{'$set':{"status":"failed_by_insufficient_funds"}})
             order_failed=True
             MessageSender.send("failed_orders",{"cart_id":cart_id})
+            print("purchase",purchase)
             return
         # user_wallet = user_wallet - purchase
         #wallet_new_value = last_customer["wallet_usd"]- purchase

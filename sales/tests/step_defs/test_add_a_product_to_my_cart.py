@@ -22,7 +22,7 @@ def cart():
 
 @when("I add a product to my cart")
 def ddg_response_contents(cart: AbstractCart,context):
-    response= cart.add(product_id=str(ObjectId()),name="t-shirt",price=31,quantity=1)
+    response= cart.add(product_id=str(ObjectId()),name="t-shirt",price=31,quantity=1,delivery_date=1)
    
     context["response"] = response
     

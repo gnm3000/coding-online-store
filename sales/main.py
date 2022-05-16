@@ -40,7 +40,14 @@ class ProductModel(BaseModel):
     name: str = Field(...)
     price: float = Field(...)
     quantity: int = Field(...)
-
+    delivery_date: int = Field(...)
+    
+class CartModel(BaseModel):
+    id: PyObjectId = Field(default_factory=PyObjectId, alias="_id")
+    customer_id: str = Field(...)
+    status: str = Field(...)
+    products: List[ProductModel]
+    
 
 @app.get("/")
 async def hello():
@@ -51,7 +58,7 @@ class AbstractCatalogStore(ABC):
     def __init__(self) -> None:
         super().__init__()
     
-    def add(self,product_id: str, name:str, price:float,quantity: int):
+    def add(self,product_id: str, name:str, price:float,quantity: int,delivery_date:int):
         raise NotImplementedError
 
 
@@ -89,30 +96,30 @@ async def get_a_product(id:str):
 
 
 @app.post("/sales/products")
-async def new_product_catalog(name: str, price: float, quantity: int):
+async def new_product_catalog(name: str, price: float, quantity: int,delivery_date:int):
     """ Scenario: Add new product to the catalog store """
     catalog = CatalogStore(db=db)
-    product= catalog.insert_one({"name": name, "price": price, "quantity": quantity})
+    product= await catalog.insert_one({"name": name, "price": price, "quantity": quantity,"delivery_date":delivery_date})
     return {"message": "product inserted", "id": str(product.inserted_id)}
 
 class AbstractCart(ABC):
     def __init__(self) -> None:
         super().__init__()
     
-    def add(self,product_id: str, name:str, price:float,quantity: int):
+    def add(self,product_id: str, name:str, price:float,quantity: int,delivery_date:int):
         raise NotImplementedError
 
 class MyShoppingCart(AbstractCart):
     def __init__(self,db,customer_id: str):
         self.customer_id=customer_id
         self.db = db
-    async def add(self,product_id: str, name:str, price:float,quantity: int):
+    async def add(self,product_id: str, name:str, price:float,quantity: int,delivery_date:int):
         condition = {"customer_id": self.customer_id, "status": "open"}
         product_line = {
         "product_id": product_id,
         "name": name,
         "price": price,
-        "quantity": quantity
+        "quantity": quantity,"delivery_date":delivery_date
         }
         cart = await self.db["carts"].find_one(condition)
         if(cart):
@@ -132,13 +139,14 @@ class FakeShoppingCart(AbstractCart):
         self.customer_id=customer_id
         self.db = db
         self.empty=True
-    def add(self,product_id: str, name:str, price:float,quantity: int):
+    def add(self,product_id: str, name:str, price:float,quantity: int,delivery_date:int):
         condition = {"customer_id": self.customer_id, "status": "open"}
         product_line = {
         "product_id": product_id,
         "name": name,
         "price": price,
-        "quantity": quantity
+        "quantity": quantity,
+        "delivery_date": delivery_date
         }
         if(not self.empty):
             return  {"message": "the product was inserted to your cart",
@@ -154,13 +162,13 @@ class FakeShoppingCart(AbstractCart):
         
 
 @app.post("/sales/cart")
-async def add_product_to_cart(product_id: str, customer_id: str, name: str, price: float, quantity: int):
+async def add_product_to_cart(product_id: str, customer_id: str, name: str, price: float, quantity: int,delivery_date:int):
     """ Scenario: Add a product to my cart:
         add a product to my shopping cart and return the actual cart state"""
     # if no shopping cart open => create new
     # if shopping cart => append product
-    my_shopping_Cart = MyShoppingCart(customer_id=customer_id)
-    message_return = await my_shopping_Cart.add(product_id=product_id,name=name,price=price,quantity=quantity)
+    my_shopping_Cart = MyShoppingCart(db=db,customer_id=customer_id)
+    message_return = await my_shopping_Cart.add(product_id=product_id,name=name,price=price,quantity=quantity,delivery_date=delivery_date)
     return message_return
     
     
@@ -183,9 +191,10 @@ async def checkout_cart(customer_id: str):
     # get the cart -> product list
     ch=CheckoutCartProcessor(db)
     cart = await ch.getOpenCartByCustomerId(customer_id=customer_id)
-    cart_id = cart['_id']
+    
     if(cart==None):
         return {"message": "No cart was found"}
+    cart_id = cart['_id']
     await ch.setCartPending(customer_id=customer_id)
     ch.process_cart(cart_id=str(cart_id),processor=SalesBackgroundTask())
     return {"message":"Your cart is in processing state","cart_id":str(cart_id),"status":"pending"}
@@ -207,6 +216,8 @@ async def checkout_cart(cart_id: str):
     
     
     return {"message": "Error", "status":cart["status"],"cart":cart}
-    
-    
-    raise NotImplementedError
+
+@app.get("/sales/checkout/list",response_model=List[CartModel])
+async def list_checkout():
+    """ Scenario: The customer asks for the checkout status """
+    return await db["carts"].find({}).to_list(None)
