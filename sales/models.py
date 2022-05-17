@@ -53,7 +53,7 @@ class CatalogStore(AbstractCatalogStore):
         self.db = db
 
     async def _insert_one(self, dict_params):
-        product = await db["products"].insert_one(dict_params)
+        product = await self.db["products"].insert_one(dict_params)
         return product
 
     async def insert_one(self, data):
@@ -80,7 +80,7 @@ class AbstractCart(ABC):
     def __init__(self) -> None:
         super().__init__()
 
-        
+
     @abstractmethod
     def add(self, product_id: str, name: str, price: float,
             quantity: int, delivery_date: int):
