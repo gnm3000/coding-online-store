@@ -11,3 +11,4 @@ pytest-bdd
 pytest-asyncio
 autopep8
 pika
+python-dotenv

@@ -14,6 +14,9 @@ import os
 load_dotenv()
 MONGODB_URL = os.getenv('MONGODB_URL')
 
+BASEURL_SALES_SERVICE = os.getenv('BASEURL_SALES_SERVICE','http://localhost:8000')
+BASEURL_CUSTOMER_SERVICE = os.getenv('BASEURL_CUSTOMER_SERVICE','http://localhost:5678')
+
 client = pymongo.MongoClient(MONGODB_URL)
 db = client["sales"]
 class MessageSender:
@@ -23,7 +26,7 @@ class MessageSender:
         # send to rabbit cart_queue
         credentials = pika.PlainCredentials(os.getenv('RABBITMQ_USER'), os.getenv('RABBITMQ_PASS'))
         parameters = pika.ConnectionParameters(os.getenv('RABBITMQ_SERVER'),
-                                            os.getenv('RABBITMQ_PORT'),
+                                            int(os.getenv('RABBITMQ_PORT')),
                                             '/',
                                             credentials)
         
@@ -51,7 +54,7 @@ class SalesBackgroundTask:
         # send to rabbit cart_queue
         credentials = pika.PlainCredentials(os.getenv('RABBITMQ_USER'), os.getenv('RABBITMQ_PASS'))
         parameters = pika.ConnectionParameters(os.getenv('RABBITMQ_SERVER'),
-                                            os.getenv('RABBITMQ_PORT'),
+                                            int(os.getenv('RABBITMQ_PORT')),
                                             '/',
                                             credentials)
         connection = pika.BlockingConnection(parameters)
@@ -83,20 +86,20 @@ class MsgProcessor:
         # request customer API
         # connect to mongo and read cart info
 
-        req = requests.get("http://localhost:8000/sales/products")
+        req = requests.get(BASEURL_SALES_SERVICE+"/sales/products")
         catalog_products = req.json()
         print("catalog_products", catalog_products)
         # asyncio.get_event_loop().run_until_complete(run())
 
         req = requests.get(
-            "http://localhost:8000/sales/checkout-status",
+            BASEURL_SALES_SERVICE+"/sales/checkout-status",
             params={
                 "cart_id": cart_id})
 
         cart = req.json()
         products = cart["cart"]["products"]
         customer_id = cart["cart"]["customer_id"]
-        req = requests.get("http://localhost:5678/customers/%s" % customer_id)
+        req = requests.get(BASEURL_CUSTOMER_SERVICE+"/customers/%s" % customer_id)
         customer = req.json()
         wallet_usd = customer["wallet_usd"]
         print("WALLET USD", wallet_usd)
@@ -107,7 +110,7 @@ class MsgProcessor:
 
         for product in products:
             product_info = requests.get(
-                "http://localhost:8000/sales/product", {"id": product["product_id"]}).json()
+                BASEURL_SALES_SERVICE+"/sales/product", {"id": product["product_id"]}).json()
             stock = product_info["quantity"]
 
             if(product["quantity"] > stock):
@@ -138,7 +141,7 @@ class MsgProcessor:
         # user_wallet = user_wallet - purchase
         #wallet_new_value = last_customer["wallet_usd"]- purchase
         # actualizar la wallet del cliente!!
-        req = requests.post("http://localhost:5678/customers/update-wallet", params={"cart_id": cart_id,
+        req = requests.post(BASEURL_CUSTOMER_SERVICE+"/customers/update-wallet", params={"cart_id": cart_id,
                                                                                      "purchase_usd": purchase,
                                                                                      "customer_id": customer['_id']})
         _ = req.json()
@@ -155,9 +158,13 @@ class SalesBackgroundTaskWorker:
 
     @classmethod
     def worker(cls):
+        print(os.getenv('RABBITMQ_SERVER'),
+                int(os.getenv('RABBITMQ_PORT')),
+                os.getenv('RABBITMQ_USER'),
+                os.getenv('RABBITMQ_PASS'))
         credentials = pika.PlainCredentials(os.getenv('RABBITMQ_USER'), os.getenv('RABBITMQ_PASS'))
         parameters = pika.ConnectionParameters(os.getenv('RABBITMQ_SERVER'),
-                                       os.getenv('RABBITMQ_PORT'),
+                                       int(os.getenv('RABBITMQ_PORT')),
                                        '/',
                                        credentials)
         connection = pika.BlockingConnection(parameters)

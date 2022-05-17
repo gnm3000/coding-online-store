@@ -1,17 +1,26 @@
+import os
+from dotenv import load_dotenv
 import pandas as pd
 import requests
+
+
+load_dotenv()
+
+BASEURL_SALES_SERVICE = os.getenv('BASEURL_SALES_SERVICE','http://localhost:8000')
+BASEURL_CUSTOMER_SERVICE = os.getenv('BASEURL_CUSTOMER_SERVICE','http://localhost:5678')
+BASEURL_SHIPPING_SERVICE = os.getenv('BASEURL_SHIPPING_SERVICE','http://localhost:5679')
 
 
 class ReportGenerator:
     def run(self):
 
-        customers = "http://localhost:5678/customers"
+        customers = BASEURL_CUSTOMER_SERVICE+"/customers"
 
-        shipping = "http://localhost:5679/shipping/orders"
+        shipping = BASEURL_SHIPPING_SERVICE+"/shipping/orders"
 
-        products = "http://localhost:8000/sales/products"
+        products = BASEURL_SALES_SERVICE+"/sales/products"
 
-        carts_checkout_list = "http://localhost:8000/sales/checkout/list"
+        carts_checkout_list = BASEURL_SALES_SERVICE+"/sales/checkout/list"
 
         json_customers = requests.get(customers).json()
 

@@ -10,7 +10,7 @@ load_dotenv()
 MONGODB_URL = os.getenv('MONGODB_URL')
 client = pymongo.MongoClient(MONGODB_URL)
 
-
+BASEURL_SALES_SERVICE = os.getenv('BASEURL_SALES_SERVICE','http://localhost:8000')
 class FailedOrdersProcessor:
 
     def process(self, msg):
@@ -20,7 +20,7 @@ class FailedOrdersProcessor:
         # request get cart_id
 
         response = requests.get(
-            "http://localhost:8000/sales/checkout-status",
+            BASEURL_SALES_SERVICE+"/sales/checkout-status",
             params={
                 "cart_id": cart_id}).json()
         print(response)
@@ -40,7 +40,7 @@ class FailedOrdersProcessor:
 
 credentials = pika.PlainCredentials(os.getenv('RABBITMQ_USER'), os.getenv('RABBITMQ_PASS'))
 parameters = pika.ConnectionParameters(os.getenv('RABBITMQ_SERVER'),
-                                       os.getenv('RABBITMQ_PORT'),
+                                       int(os.getenv('RABBITMQ_PORT')),
                                        '/',
                                        credentials)
 connection = pika.BlockingConnection(parameters)

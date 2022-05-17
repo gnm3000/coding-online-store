@@ -4,12 +4,15 @@ import json
 import random,time
 from urllib.parse import urlencode
 import csv
-
+import os
 from locust import events
 import requests
+BASE_URL_SALES = os.getenv('BASE_URL_SALES',"http://localhost:8000")
+BASE_URL_CUSTOMERS = os.getenv('BASE_URL_CUSTOMERS',"http://localhost:5678")
+BASE_URL_SHIPPING = os.getenv('BASE_URL_SHIPPING',"http://localhost:5679")
 
 
-response = requests.get("http://localhost:5678/customers")
+response = requests.get(BASE_URL_CUSTOMERS+"/customers")
 USERS = response.json()
 @events.test_start.add_listener
 def on_test_start(environment, **kwargs):
@@ -39,7 +42,7 @@ class MySeqTask(SequentialTaskSet):
     @task
     def define_products(self):
         
-        response = self.client.get("http://localhost:8000/sales/products")
+        response = self.client.get(BASE_URL_SALES+"/sales/products")
         catalog = response.json()
         random.shuffle(catalog)
         self.random_products = catalog[:random.randint(1,5)]
@@ -51,10 +54,10 @@ class MySeqTask(SequentialTaskSet):
         for product in products:
             payload = {"product_id":product['_id'],"customer_id":self.customer['_id'],"name":product["name"],"price":product["price"],
                                 "quantity":random.randint(1,3),"delivery_date":product["delivery_date"]}
-            response = self.client.post("http://localhost:8000/sales/cart?",params=urlencode(payload))
+            response = self.client.post(BASE_URL_SALES+"/sales/cart?",params=urlencode(payload))
     @task
     def checkout_cart(self):
-        response = self.client.post("http://localhost:8000/sales/checkout",params=urlencode({"customer_id":self.customer['_id']}))
+        response = self.client.post(BASE_URL_SALES+"/sales/checkout",params=urlencode({"customer_id":self.customer['_id']}))
         if(response.json()["message"]=="No cart was found"):
             self.stop()
         self.checkout = response.json()
@@ -62,7 +65,7 @@ class MySeqTask(SequentialTaskSet):
     @task
     def checkout_status(self):
         while True:
-            response = self.client.get("http://localhost:8000/sales/checkout-status",params=urlencode({"cart_id":self.checkout['cart_id']}))
+            response = self.client.get(BASE_URL_SALES+"/sales/checkout-status",params=urlencode({"cart_id":self.checkout['cart_id']}))
             time.sleep(1)
             checkout_status=response.json()
             if(checkout_status["status"]!="pending"):
@@ -72,7 +75,7 @@ class MySeqTask(SequentialTaskSet):
         if(checkout_status["status"]=="success"):
             count=0
             while True:
-                req = self.client.get("http://localhost:5679/shipping/orders",params={"cart_id":self.checkout['cart_id']})
+                req = self.client.get(BASE_URL_SHIPPING+"/shipping/orders",params={"cart_id":self.checkout['cart_id']})
                 self.shipping_status=req.json()[0]["status"]
                 if(self.shipping_status=="delivered"):
                     break
@@ -89,6 +92,6 @@ class MySeqTask(SequentialTaskSet):
 
 
 class MyLoadTest(HttpUser):
-    host = "http://localhost:5679"
+    host = "http://itdoesnt-matter.xyz"
     tasks = [MySeqTask]
     wait_time = between(0.5, 1)

@@ -2,13 +2,9 @@
 #!/usr/bin/env python
 
 
-
+import requests
+import pika, sys, os,time,json,random
 from dotenv import load_dotenv
-
-
-load_dotenv()
-MONGODB_URL = os.getenv('MONGODB_URL')
-
 from datetime import datetime
 from gc import collect
 
@@ -16,16 +12,20 @@ from bson.objectid import ObjectId
 from MongoDBConnector import MongoDBConnector
 from shipping_processor import ShippingProcessor,Cart,Notifier
 import pymongo
+
+load_dotenv()
+MONGODB_URL = os.getenv('MONGODB_URL')
+
+
 client = pymongo.MongoClient(MONGODB_URL)
 db = client["shipping"]
-import requests
-import pika, sys, os,time,json,random
+
 
 def main():
 
     credentials = pika.PlainCredentials(os.getenv('RABBITMQ_USER'), os.getenv('RABBITMQ_PASS'))
     parameters = pika.ConnectionParameters(os.getenv('RABBITMQ_SERVER'),
-                                       os.getenv('RABBITMQ_PORT'),
+                                       int(os.getenv('RABBITMQ_PORT')),
                                        '/',
                                        credentials)
     connection = pika.BlockingConnection(parameters)

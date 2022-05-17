@@ -1,4 +1,6 @@
 
+import os
+from dotenv import load_dotenv
 import pika,json,requests
 from datetime import datetime
 from MongoDBConnector import MongoDBConnector,DBConnector
@@ -9,6 +11,11 @@ import time
 import random
 from bson.objectid import ObjectId
 
+load_dotenv()
+MONGODB_URL = os.getenv('MONGODB_URL')
+
+BASEURL_SALES_SERVICE = os.getenv('BASEURL_SALES_SERVICE','http://localhost:8000')
+BASEURL_CUSTOMER_SERVICE = os.getenv('BASEURL_CUSTOMER_SERVICE','http://localhost:5678')
 class AbstractNotifier(ABC):
     @abstractmethod
     def __init__(self,channel):
@@ -52,15 +59,14 @@ class FakeCart(AbstractCart):
         self.cart_id = cart_id
         
     def requestCart(self):
-        #req = requests.get("http://localhost:8000/sales/checkout-status",params={"cart_id":self.cart_id})
-        #return req.json()["cart"]
+        
         return {"products":[{"id":"xxx","name":"T-Shirt","price":200,"quantity":1,"delivery_date":2}],"_id":"xxxx","customer_id":"yyy"}
 class Cart(AbstractCart):
     def __init__(self,cart_id:str):
         self.cart_id = cart_id
         
     def requestCart(self):
-        req = requests.get("http://localhost:8000/sales/checkout-status",params={"cart_id":self.cart_id})
+        req = requests.get(BASEURL_SALES_SERVICE+"/sales/checkout-status",params={"cart_id":self.cart_id})
         return req.json()["cart"]
 
 class ShippingProcessor:

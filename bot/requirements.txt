@@ -1,3 +1,4 @@
 requests
 locust
 pymongo
+python-dotenv

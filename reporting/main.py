@@ -19,7 +19,7 @@ async def hello():
 @app.get("/reporting/csv-summary")
 async def hello():
     reporting = ReportGenerator()
-    stats, summary = reporting.run()
+    _, summary = reporting.run()
     summary.to_csv("summary.csv")
     return FileResponse(path="summary.csv", filename="summary.csv")
 
@@ -27,8 +27,8 @@ async def hello():
 @app.get("/reporting/csv-stats-by-customer")
 async def hello():
     reporting = ReportGenerator()
-    stats, summary = reporting.run()
-    summary.to_csv("stats-by-customer.csv")
+    stats, _ = reporting.run()
+    stats.to_csv("stats-by-customer.csv")
 
     return FileResponse(path="stats-by-customer.csv",
                         filename="stats-by-customer.csv")

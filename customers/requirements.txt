@@ -10,3 +10,4 @@ requests
 pytest-bdd
 pytest-asyncio
 pika
+python-dotenv
