@@ -11,8 +11,7 @@ from typing import Optional
 import os
 import motor.motor_asyncio
 from bson.objectid import ObjectId
-app = FastAPI(root_path="/", docs_url='/sales/api/docs')
-
+app = FastAPI(root_path="/", docs_url='/sales/api/docs',openapi_url="/sales/openapi.json")
 
 load_dotenv()
 MONGODB_URL = os.getenv('MONGODB_URL')

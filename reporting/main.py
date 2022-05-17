@@ -4,7 +4,7 @@ from typing import Optional, List
 from fastapi.responses import FileResponse
 from background_generate_report import ReportGenerator
 
-app = FastAPI(root_path="/", docs_url='/api/docs')
+app = FastAPI(root_path="/", docs_url='/reporting/api/docs',openapi_url="/reporting/openapi.json")
 
 
 @app.get("/reporting/json")

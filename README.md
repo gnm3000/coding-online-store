@@ -96,3 +96,8 @@ foo@bar:~$ docker compose up run_locust
 
 In /reporting/analysis-jupyter/analysis.ipynb you can see what I code to analyze the data from the different microservices before to code it as a downloadable file
 
+### SwaggerAPI
+- http://192.168.49.2/customers/api/docs
+- http://192.168.49.2/sales/api/docs
+- http://192.168.49.2/shipping/api/docs
+- http://192.168.49.2/reporting/api/docs

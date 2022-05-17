@@ -8,8 +8,8 @@ from fastapi import FastAPI
 from typing import Optional
 import os
 import motor.motor_asyncio
-app = FastAPI(root_path="/", docs_url='/shipping/api/docs')
 
+app = FastAPI(root_path="/", docs_url='/shipping/api/docs',openapi_url="/shipping/openapi.json")
 load_dotenv()
 MONGODB_URL = os.getenv('MONGODB_URL')
 client = motor.motor_asyncio.AsyncIOMotorClient(MONGODB_URL)
