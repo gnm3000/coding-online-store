@@ -1,0 +1,4 @@
+kubectl create -f https://k8s.io/examples/admin/dns/busybox.yaml
+kubectl exec -ti busybox -- nslookup mongo-nodeport-svc.default
+
+
