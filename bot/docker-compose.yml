@@ -1,0 +1,32 @@
+version: "3"
+services:
+  populate:
+    build: .
+    command: python populate_store.py
+    network_mode: "host"
+    
+    environment:    
+     - BASE_URL_SALES=http://192.168.49.2
+     - BASE_URL_CUSTOMERS=http://192.168.49.2
+     - BASE_URL_SHIPPING=http://192.168.49.2
+     - MONGODB_URL=mongodb://adminuser:password123@192.168.49.2:30001/?retryWrites=true&w=majority
+  run_bot:
+    build: .
+    command: python bot.py
+    network_mode: "host"
+    
+    environment:    
+     - BASE_URL_SALES=http://192.168.49.2
+     - BASE_URL_CUSTOMERS=http://192.168.49.2
+     - BASE_URL_SHIPPING=http://192.168.49.2
+  
+  run_locust:
+    build: .
+    command: locust -f locust_app.py
+    network_mode: "host"
+    
+    environment:    
+     - BASE_URL_SALES=http://192.168.49.2
+     - BASE_URL_CUSTOMERS=http://192.168.49.2
+     - BASE_URL_SHIPPING=http://192.168.49.2
+
