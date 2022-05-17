@@ -1,0 +1,34 @@
+kind: Pod
+apiVersion: v1
+metadata:
+  name: reporting-app
+  labels:
+    app: reporting
+spec:
+  containers:
+    - name: reporting-app
+      image: gnm3000/reporting_microservice:latest
+      imagePullPolicy: Always
+      env:
+      - name: MONGODB_URL
+        value: mongodb://adminuser:password123@mongo-nodeport-svc.default.svc.cluster.local/?retryWrites=true&w=majority
+      
+      - name: BASEURL_CUSTOMER_SERVICE
+        value: http://customers-service.default.svc.cluster.local:5678
+      - name: BASEURL_SALES_SERVICE
+        value: http://sales-service.default.svc.cluster.local:5678   
+      - name: BASEURL_SHIPPING_SERVICE
+        value: http://shipping-service.default.svc.cluster.local:5678
+
+         
+---
+
+kind: Service
+apiVersion: v1
+metadata:
+  name: reporting-service
+spec:
+  selector:
+    app: reporting
+  ports:
+    - port: 5678 # Default port for image

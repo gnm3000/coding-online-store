@@ -1,0 +1,40 @@
+kind: Pod
+apiVersion: v1
+metadata:
+  name: shipping-app-worker
+  labels:
+    app: shipping-worker
+spec:
+  containers:
+    - name: shipping-app-worker
+      image: gnm3000/shipping_microservice_worker:latest
+      imagePullPolicy: Always
+      env:
+      - name: MONGODB_URL
+        value: mongodb://adminuser:password123@mongo-nodeport-svc.default.svc.cluster.local/?retryWrites=true&w=majority
+      - name: RABBITMQ_USER
+        value: guest
+      - name: RABBITMQ_PASS
+        value: guest
+      - name: RABBITMQ_SERVER
+        value: production-rabbitmqcluster.default.svc.cluster.local
+      - name: RABBITMQ_PORT
+        value: '5672'
+      - name: BASEURL_CUSTOMER_SERVICE
+        value: http://customers-service.default.svc.cluster.local:5678
+      - name: BASEURL_SALES_SERVICE
+        value: http://sales-service.default.svc.cluster.local:5678
+      
+      
+
+---
+
+kind: Service
+apiVersion: v1
+metadata:
+  name: shipping-service-worker
+spec:
+  selector:
+    app: shipping-worker
+  ports:
+    - port: 5678 # Default port for image
