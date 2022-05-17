@@ -101,3 +101,10 @@ In /reporting/analysis-jupyter/analysis.ipynb you can see what I code to analyze
 - http://192.168.49.2/sales/api/docs
 - http://192.168.49.2/shipping/api/docs
 - http://192.168.49.2/reporting/api/docs
+
+## Technologies
+
+DB Motor: I use MongoDB. I setup a MongoDB K8s Cluster, and for each microservice I created one database
+Web Server: FastAPI: This was the first time I use in a project, I wanted to learn it. Manage Async operations, so Motor MongoDB is the library to use with MongoDB as Async. For background processes, I worked with PyMongo directly.
+I used Jupyter notebook to analyze and put all together the reporting process. Then I put to work this in a microservice separated "reporting".
+

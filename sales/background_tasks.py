@@ -14,22 +14,27 @@ import os
 load_dotenv()
 MONGODB_URL = os.getenv('MONGODB_URL')
 
-BASEURL_SALES_SERVICE = os.getenv('BASEURL_SALES_SERVICE','http://localhost:8000')
-BASEURL_CUSTOMER_SERVICE = os.getenv('BASEURL_CUSTOMER_SERVICE','http://localhost:5678')
+BASEURL_SALES_SERVICE = os.getenv(
+    'BASEURL_SALES_SERVICE', 'http://localhost:8000')
+BASEURL_CUSTOMER_SERVICE = os.getenv(
+    'BASEURL_CUSTOMER_SERVICE', 'http://localhost:5678')
 
 client = pymongo.MongoClient(MONGODB_URL)
 db = client["sales"]
+
+
 class MessageSender:
 
     @classmethod
     def send(cls, queue, message):
         # send to rabbit cart_queue
-        credentials = pika.PlainCredentials(os.getenv('RABBITMQ_USER'), os.getenv('RABBITMQ_PASS'))
+        credentials = pika.PlainCredentials(
+            os.getenv('RABBITMQ_USER'), os.getenv('RABBITMQ_PASS'))
         parameters = pika.ConnectionParameters(os.getenv('RABBITMQ_SERVER'),
-                                            int(os.getenv('RABBITMQ_PORT')),
-                                            '/',
-                                            credentials)
-        
+                                               int(os.getenv('RABBITMQ_PORT')),
+                                               '/',
+                                               credentials)
+
         connection = pika.BlockingConnection(parameters)
         channel = connection.channel()
 
@@ -52,11 +57,12 @@ class SalesBackgroundTask:
 
     def processCart(self, cart_id: str):
         # send to rabbit cart_queue
-        credentials = pika.PlainCredentials(os.getenv('RABBITMQ_USER'), os.getenv('RABBITMQ_PASS'))
+        credentials = pika.PlainCredentials(
+            os.getenv('RABBITMQ_USER'), os.getenv('RABBITMQ_PASS'))
         parameters = pika.ConnectionParameters(os.getenv('RABBITMQ_SERVER'),
-                                            int(os.getenv('RABBITMQ_PORT')),
-                                            '/',
-                                            credentials)
+                                               int(os.getenv('RABBITMQ_PORT')),
+                                               '/',
+                                               credentials)
         connection = pika.BlockingConnection(parameters)
         channel = connection.channel()
 
@@ -74,8 +80,6 @@ class SalesBackgroundTask:
         connection.close()
 
         return "OK"
-
-
 
 
 class MsgProcessor:
@@ -99,7 +103,8 @@ class MsgProcessor:
         cart = req.json()
         products = cart["cart"]["products"]
         customer_id = cart["cart"]["customer_id"]
-        req = requests.get(BASEURL_CUSTOMER_SERVICE+"/customers/%s" % customer_id)
+        req = requests.get(BASEURL_CUSTOMER_SERVICE +
+                           "/customers/%s" % customer_id)
         customer = req.json()
         wallet_usd = customer["wallet_usd"]
         print("WALLET USD", wallet_usd)
@@ -142,8 +147,8 @@ class MsgProcessor:
         #wallet_new_value = last_customer["wallet_usd"]- purchase
         # actualizar la wallet del cliente!!
         req = requests.post(BASEURL_CUSTOMER_SERVICE+"/customers/update-wallet", params={"cart_id": cart_id,
-                                                                                     "purchase_usd": purchase,
-                                                                                     "customer_id": customer['_id']})
+                                                                                         "purchase_usd": purchase,
+                                                                                         "customer_id": customer['_id']})
         _ = req.json()
         db["carts"].update_one({"_id": ObjectId(cart_id)}, {
                                '$set': {"status": "success"}})
@@ -157,21 +162,23 @@ class MsgProcessor:
 class SalesBackgroundTaskWorker:
 
     @classmethod
-    def worker(cls,msg_processor:MsgProcessor):
+    def worker(cls, msg_processor: MsgProcessor):
         print(os.getenv('RABBITMQ_SERVER'),
-                int(os.getenv('RABBITMQ_PORT')),
-                os.getenv('RABBITMQ_USER'),
-                os.getenv('RABBITMQ_PASS'))
-        credentials = pika.PlainCredentials(os.getenv('RABBITMQ_USER'), os.getenv('RABBITMQ_PASS'))
+              int(os.getenv('RABBITMQ_PORT')),
+              os.getenv('RABBITMQ_USER'),
+              os.getenv('RABBITMQ_PASS'))
+        credentials = pika.PlainCredentials(
+            os.getenv('RABBITMQ_USER'), os.getenv('RABBITMQ_PASS'))
         parameters = pika.ConnectionParameters(os.getenv('RABBITMQ_SERVER'),
-                                       int(os.getenv('RABBITMQ_PORT')),
-                                       '/',
-                                       credentials)
+                                               int(os.getenv('RABBITMQ_PORT')),
+                                               '/',
+                                               credentials)
         connection = pika.BlockingConnection(parameters)
 
         channel = connection.channel()
 
         channel.queue_declare(queue='sales_cart_queue', durable=True)
+
         def callback(ch, method, properties, body):
             data = body.decode()
             print(" [x] Received %r" % body.decode())
