@@ -60,12 +60,11 @@ class AbstractCatalogStore(ABC):
     def __init__(self) -> None:
         super().__init__()
 
-    def add(self, product_id: str, name: str, price: float,
-            quantity: int, delivery_date: int):
+    def insert_one(self,data:dict):
         raise NotImplementedError
 
 
-class CatalogStore:
+class CatalogStore(AbstractCatalogStore):
     def __init__(self, db):
         self.db = db
 
@@ -77,7 +76,7 @@ class CatalogStore:
         return await self._insert_one(data)
 
 
-class FakeCatalogStore:
+class FakeCatalogStore(AbstractCatalogStore):
     def __init__(self, db):
         self.db = db
 

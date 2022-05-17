@@ -157,7 +157,7 @@ class MsgProcessor:
 class SalesBackgroundTaskWorker:
 
     @classmethod
-    def worker(cls):
+    def worker(cls,msg_processor:MsgProcessor):
         print(os.getenv('RABBITMQ_SERVER'),
                 int(os.getenv('RABBITMQ_PORT')),
                 os.getenv('RABBITMQ_USER'),
@@ -172,8 +172,6 @@ class SalesBackgroundTaskWorker:
         channel = connection.channel()
 
         channel.queue_declare(queue='sales_cart_queue', durable=True)
-        msg_processor = MsgProcessor()
-
         def callback(ch, method, properties, body):
             data = body.decode()
             print(" [x] Received %r" % body.decode())
@@ -193,4 +191,4 @@ class SalesBackgroundTaskWorker:
 
 if __name__ == "__main__":
 
-    SalesBackgroundTaskWorker.worker()
+    SalesBackgroundTaskWorker.worker(msg_processor=MsgProcessor())

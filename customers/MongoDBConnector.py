@@ -11,7 +11,7 @@ class DBConnector(ABC):
     @abstractmethod
     def insert_one(self,collection,data:dict):
         raise NotImplementedError
-    def get_one(self,collection,_id:str):
+    def get_one(self,collection,condition:dict):
         raise NotImplementedError
     def update_one(self,collection,condition,data:dict):
         raise NotImplementedError
