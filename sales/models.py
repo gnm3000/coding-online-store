@@ -4,7 +4,6 @@ from typing import List
 from unittest.mock import Mock
 from bson import ObjectId
 from pydantic import BaseModel, Field
-from background_tasks import SalesBackgroundTask
 
 from abc import ABC, abstractmethod
 
@@ -46,6 +45,9 @@ class AbstractCatalogStore(ABC):
     @abstractmethod
     def insert_one(self,data:dict):
         raise NotImplementedError
+    @abstractmethod
+    def decrease_quantity(self,product_id:str,quantity:int):
+        raise NotImplementedError
 
 
 class CatalogStore(AbstractCatalogStore):
@@ -58,19 +60,34 @@ class CatalogStore(AbstractCatalogStore):
 
     async def insert_one(self, data):
         return await self._insert_one(data)
+    async def decrease_quantity(self, product_id:str,quantity:int):
+        product = await self.db["products"].update_one({'_id':ObjectId(product_id)},{"$inc": {"quantity": -quantity}})
+        return product
+
+
+    
 
 
 class FakeCatalogStore(AbstractCatalogStore):
     def __init__(self, db):
         self.db = db
-
+        self.products_array = []
     def _insert_one(self, dict_params):
         p = Mock()
         p.inserted_id = str(ObjectId())
+        self.products_array.append(p)
         return p
 
     def insert_one(self, data):
         return self._insert_one(data)
+
+    def decrease_quantity(self, product_id:str,quantity:int):
+        for idx, product in enumerate(self.products_array):
+            if(product_id==product["_id"]):
+                self.products_array[idx]["quantity"] = self.products_array[idx]["quantity"] -1
+                return self.products_array[idx]
+
+        
 
 
 
@@ -144,17 +161,4 @@ class FakeShoppingCart(AbstractCart):
                     }
 
 
-class CheckoutCartProcessor:
-    def __init__(self, db):
-        self.db = db
 
-    async def getOpenCartByCustomerId(self, customer_id: str):
-        condition = {"customer_id": customer_id, "status": "open"}
-        return await self.db["carts"].find_one(condition)
-
-    async def setCartPending(self, customer_id: str):
-        condition = {"customer_id": customer_id, "status": "open"}
-        return await self.db["carts"].update_one(condition, {'$set': {"status": "pending"}})
-
-    def process_cart(self, cart_id, processor: SalesBackgroundTask):
-        processor.processCart(cart_id=cart_id)

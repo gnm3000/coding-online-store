@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+from gettext import Catalog
 import pprint
 from dotenv import load_dotenv
 import pymongo
@@ -11,6 +12,8 @@ import sys
 import requests
 import json
 import os
+from models import CatalogStore
+
 load_dotenv()
 MONGODB_URL = os.getenv('MONGODB_URL')
 
@@ -80,7 +83,20 @@ class SalesBackgroundTask:
         connection.close()
 
         return "OK"
+class CheckoutCartProcessor:
+    def __init__(self, db):
+        self.db = db
 
+    async def getOpenCartByCustomerId(self, customer_id: str):
+        condition = {"customer_id": customer_id, "status": "open"}
+        return await self.db["carts"].find_one(condition)
+
+    async def setCartPending(self, customer_id: str):
+        condition = {"customer_id": customer_id, "status": "open"}
+        return await self.db["carts"].update_one(condition, {'$set': {"status": "pending"}})
+
+    def process_cart(self, cart_id, processor: SalesBackgroundTask):
+        processor.processCart(cart_id=cart_id)
 
 class MsgProcessor:
 
@@ -112,12 +128,12 @@ class MsgProcessor:
         purchase = 0
         order_failed = False
         # --- if  purchase > stock => NoStockError
-
+        products_quantity=[]
         for product in products:
             product_info = requests.get(
                 BASEURL_SALES_SERVICE+"/sales/product", {"id": product["product_id"]}).json()
             stock = product_info["quantity"]
-
+            products_quantity.append({"product_id":product["product_id"],"quantity":product["quantity"]})
             if(product["quantity"] > stock):
                 condition = {
                     "customer_id": customer['_id'],
@@ -152,6 +168,11 @@ class MsgProcessor:
         _ = req.json()
         db["carts"].update_one({"_id": ObjectId(cart_id)}, {
                                '$set': {"status": "success"}})
+        cs = CatalogStore(db=db)
+        for product_qty in products_quantity:
+            
+            cs.decrease_quantity(product_id=product_qty["product_id"],quantity=product_qty["quantity"])
+        
         MessageSender.send("success_orders", {"cart_id": cart_id})
         # if sucess=> create order and send to shipping microservice (using rabbitMQ)
         # if error => create fail order and send to customers microservice

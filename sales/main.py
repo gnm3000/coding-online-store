@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 
 from dotenv import load_dotenv
-from background_tasks import SalesBackgroundTask
+from background_tasks import CheckoutCartProcessor, SalesBackgroundTask
 from unittest.mock import Mock
 from bson import ObjectId
 from pydantic import BaseModel, Field
@@ -12,7 +12,7 @@ import os
 import motor.motor_asyncio
 from bson.objectid import ObjectId
 
-from models import CartModel, CatalogStore, CheckoutCartProcessor, MyShoppingCart, ProductModel
+from models import CartModel, CatalogStore, MyShoppingCart, ProductModel
 app = FastAPI(root_path="/", docs_url='/sales/api/docs',openapi_url="/sales/openapi.json")
 
 load_dotenv()
